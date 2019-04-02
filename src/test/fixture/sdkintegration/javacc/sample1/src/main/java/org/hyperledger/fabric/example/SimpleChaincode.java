@@ -3,6 +3,8 @@ import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
+
 import com.google.gson.Gson;
 import com.google.protobuf.ByteString;
 import io.netty.handler.ssl.OpenSsl;
@@ -105,6 +107,11 @@ public class SimpleChaincode extends ChaincodeBase {
         _logger.info(String.format("new value of B: %s", accountToValue));
         // stub.putStringState(accountFromKey, Integer.toString(accountFromValue));
         stub.putStringState(accountToKey, Integer.toString(accountToValue));
+        Gson gson=new Gson();
+        Map map=new HashMap();
+        map.put("name","zhangsan");
+        map.put("name1","zhangsan");
+        stub.putStringState("B", gson.toJson(map));
         _logger.info("Transfer complete");
         Map<String, byte[]> transientMap = stub.getTransient();
         if (null != transientMap) {
@@ -115,10 +122,8 @@ public class SimpleChaincode extends ChaincodeBase {
                 return newSuccessResponse(transientMap.get("result"));
             }
         }
+
         return newSuccessResponse();
-//        return   newSuccessResponse("invoke finished successfully", ByteString.copyFrom(accountFromKey + ": " + accountFromValue + " " + accountToKey + ": " + accountToValue, UTF_8).
-//
-//                        toByteArray());
     }
     // Deletes an entity from state
     private Response delete(ChaincodeStub stub, List<String> args) {

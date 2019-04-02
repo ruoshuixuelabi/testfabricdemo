@@ -1,16 +1,11 @@
 package org.hyperledger.fabric.sdkintegration;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.hyperledger.fabric.sdk.User;
 import org.hyperledger.fabric_ca.sdk.HFCAClient;
 
+import java.util.*;
 /*
  *  Copyright 2016, 2017 DTCC, Fujitsu Australia Software Technology, IBM - All Rights Reserved.
  *
@@ -27,16 +22,14 @@ import org.hyperledger.fabric_ca.sdk.HFCAClient;
 
 /**
  * Sample Organization Representation
- *
  * Keeps track which resources are defined for the Organization it represents.
- *
  */
 @Data
+@NoArgsConstructor
 public class SampleOrg {
-    final String name;
-    final String mspid;
+    String name;
+    String mspid;
     HFCAClient caClient;
-
     Map<String, User> userMap = new HashMap<>();
     Map<String, String> peerLocations = new HashMap<>();
     Map<String, String> ordererLocations = new HashMap<>();
@@ -44,17 +37,13 @@ public class SampleOrg {
     private SampleUser admin;
     private String caLocation;
     private Properties caProperties = null;
-
     private SampleUser peerAdmin;
-
-
     private String domainName;
+    private String caName;
 
     public String getCAName() {
         return caName;
     }
-
-    private String caName;
 
     public SampleOrg(String name, String mspid) {
         this.name = name;
