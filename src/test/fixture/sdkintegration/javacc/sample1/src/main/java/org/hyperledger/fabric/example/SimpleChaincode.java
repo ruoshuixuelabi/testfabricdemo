@@ -77,41 +77,13 @@ public class SimpleChaincode extends ChaincodeBase {
         String accountFromKey = args.get(0);
         //取出第二个参数,这个参数代表移动到哪个key
         String accountToKey = args.get(1);
-        //获取第一个参数对应的值,key对应的value
-        String accountFromValueStr = stub.getStringState(accountFromKey);
-        System.out.println("打印的参数是"+accountFromValueStr);
-        _logger.info(new String("获取到的参数的对应值是".getBytes(),"UTF-8")+accountFromValueStr);
         byte[] creator = stub.getCreator();
         System.out.println("更新的时候打印到的证书="+new String(creator,"UTF-8"));
-        if (accountFromValueStr == null) {
-            return newErrorResponse(String.format("Entity %s not found", accountFromKey));
-        }
         int accountFromValue =500;
-        try {
-            accountFromValue = Integer.parseInt(accountFromValueStr);
-        }catch (Exception e){
-
-        }
-        String accountToValueStr = stub.getStringState(accountToKey);
-        if (accountToValueStr == null) {
-            return newErrorResponse(String.format("Entity %s not found", accountToKey));
-        }
-        int accountToValue = Integer.parseInt(accountToValueStr);
-        int amount = Integer.parseInt(args.get(2));
-        if (amount > accountFromValue) {
-            return newErrorResponse(String.format("not enough money in account %s", accountFromKey));
-        }
-        accountFromValue -= amount;
-        accountToValue += amount;
-        _logger.info(String.format("new value of A: %s", accountFromValue));
-        _logger.info(String.format("new value of B: %s", accountToValue));
-        // stub.putStringState(accountFromKey, Integer.toString(accountFromValue));
-        stub.putStringState(accountToKey, Integer.toString(accountToValue));
         Gson gson=new Gson();
         Map map=new HashMap();
-        map.put("name","zhangsan");
-        map.put("name1","zhangsan");
-        stub.putStringState("B", gson.toJson(map));
+        map.put(accountFromKey,accountToKey);
+        stub.putStringState(accountFromKey, gson.toJson(map));
         _logger.info("Transfer complete");
         Map<String, byte[]> transientMap = stub.getTransient();
         if (null != transientMap) {
@@ -122,7 +94,6 @@ public class SimpleChaincode extends ChaincodeBase {
                 return newSuccessResponse(transientMap.get("result"));
             }
         }
-
         return newSuccessResponse();
     }
     // Deletes an entity from state

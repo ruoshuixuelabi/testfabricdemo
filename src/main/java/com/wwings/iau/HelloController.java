@@ -22,7 +22,7 @@ public class HelloController {
     Collection<ProposalResponse> successful = new LinkedList<>();
     @ResponseBody
     @RequestMapping("/hello")
-    public String hello() throws Exception{
+    public String hello(String key,String value) throws Exception{
         Collection<ProposalResponse> successful = new LinkedList<>();
         ChaincodeID.Builder chaincodeIDBuilder = ChaincodeID.newBuilder()//
                                                                                         .setName(CHAIN_CODE_NAME)//
@@ -32,26 +32,22 @@ public class HelloController {
         HFClient client = HFClient.createNewInstance();
         client.setCryptoSuite(CryptoSuite.Factory.getCryptoSuite());
         SampleOrg sampleOrg = testConfig.getIntegrationTestsSampleOrg("peerOrg1");
-        //client.setUserContext(sampleOrg.getUser(testUser1));
         client.setUserContext(sampleOrg.getPeerAdmin());
         TransactionProposalRequest transactionProposalRequest = client.newTransactionProposalRequest();
         transactionProposalRequest.setChaincodeID(chaincodeID);
         transactionProposalRequest.setChaincodeLanguage(CHAIN_CODE_LANG);
-        //transactionProposalRequest.setFcn("invoke");
         transactionProposalRequest.setFcn("move");
         transactionProposalRequest.setProposalWaitTime(testConfig.getProposalWaitTime());
-        transactionProposalRequest.setArgs("a", "b", "100");
+        transactionProposalRequest.setArgs(key, value, "100");
         Map<String, byte[]> tm2 = new HashMap<>();
         tm2.put("HyperLedgerFabric", "TransactionProposalRequest:JavaSDK".getBytes(UTF_8)); //Just some extra junk in transient map
         tm2.put("method", "TransactionProposalRequest".getBytes(UTF_8)); // ditto
         tm2.put("result", ":)".getBytes(UTF_8));  // This should be returned in the payload see chaincode why.
         tm2.put(EXPECTED_EVENT_NAME, EXPECTED_EVENT_DATA);  //This should trigger an event see chaincode why.
         transactionProposalRequest.setTransientMap(tm2);
-
         client.setUserContext(sampleOrg.getPeerAdmin());
         Channel channel=CheckRunner.sampleStore.getChannel(client, "foo").initialize();
         System.out.println("获取到的通道是channel="+channel);
-        //constructChannel("foo", client, sampleOrg);
         Collection<ProposalResponse> transactionPropResp = channel.sendTransactionProposal(transactionProposalRequest, channel.getPeers());
         for (ProposalResponse response : transactionPropResp) {
             if (response.getStatus() == ProposalResponse.Status.SUCCESS) {
