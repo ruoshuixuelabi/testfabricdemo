@@ -3,7 +3,6 @@ import org.hyperledger.fabric.protos.peer.Query;
 import org.hyperledger.fabric.sdk.*;
 import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric.sdk.exception.ProposalException;
-import org.hyperledger.fabric.sdk.helper.Config;
 import org.hyperledger.fabric.sdk.security.CryptoSuite;
 import org.hyperledger.fabric.sdk.testutils.TestConfig;
 import org.hyperledger.fabric.sdkintegration.SampleOrg;
@@ -11,7 +10,6 @@ import org.hyperledger.fabric.sdkintegration.SampleStore;
 import org.hyperledger.fabric.sdkintegration.SampleUser;
 import org.hyperledger.fabric.sdkintegration.Util;
 import org.hyperledger.fabric_ca.sdk.HFCAClient;
-import org.hyperledger.fabric_ca.sdk.HFCAIdentity;
 import org.hyperledger.fabric_ca.sdk.HFCAInfo;
 import org.hyperledger.fabric_ca.sdk.RegistrationRequest;
 import org.springframework.boot.ApplicationArguments;
@@ -87,15 +85,7 @@ public class CheckRunner implements ApplicationRunner {
             //获取组织的mspid
             final String mspid = sampleOrg.getMSPID();
             //设置HFCAClient的密码适配
-            //TODO  CryptoPrimitives 设置成实现类
-//            CryptoPrimitivesNew cp = new CryptoPrimitivesNew();
-//            Properties properties = new Properties();
-//            properties.put(Config.SECURITY_LEVEL, config.getSecurityLevel());
-//            properties.put(Config.HASH_ALGORITHM, config.getHashAlgorithm());
-//            cp.setProperties(properties);
-//            cp.init();
             ca.setCryptoSuite(CryptoSuite.Factory.getCryptoSuite());
-//            ca.setCryptoSuite(cp);
             //获取HFCAClient的信息HFCAInfo
             HFCAInfo info = ca.info(); //just check if we connect at all.
             System.out.println("获取到的HFCAInfo=" + info);
@@ -149,7 +139,6 @@ public class CheckRunner implements ApplicationRunner {
             sampleOrg.setAdmin(admin); // The admin of this org --
         }
     }
-
     /**
      * 真正运行的方法
      */
@@ -204,6 +193,7 @@ public class CheckRunner implements ApplicationRunner {
         Orderer anOrderer = orderers.iterator().next();
         //从集合里面踢出刚才获取的排序节点Orderer
         orderers.remove(anOrderer);
+        //创建通道所需要的tx文件
         String path = TEST_FIXTURES_PATH + "/sdkintegration/e2e-2Orgs/" + testConfig.getFabricConfigGenVers() + "/" + name + ".tx";
         //根据channel的配置文件创建ChannelConfiguration
         ChannelConfiguration channelConfiguration = new ChannelConfiguration(new File(path));
@@ -257,8 +247,7 @@ public class CheckRunner implements ApplicationRunner {
             Collection<ProposalResponse> successful = new LinkedList<>();
             Collection<ProposalResponse> failed = new LinkedList<>();
             //这里判断不是foo这个channel,不是的话不注册事件以及不回调
-            ChaincodeID.Builder chaincodeIDBuilder = ChaincodeID.newBuilder().setName(CHAIN_CODE_NAME)
-                    .setVersion(CHAIN_CODE_VERSION);
+            ChaincodeID.Builder chaincodeIDBuilder = ChaincodeID.newBuilder().setName(CHAIN_CODE_NAME).setVersion(CHAIN_CODE_VERSION);
             if (null != CHAIN_CODE_PATH) {
                 chaincodeIDBuilder.setPath(CHAIN_CODE_PATH);
             }
@@ -306,10 +295,9 @@ public class CheckRunner implements ApplicationRunner {
                 instantiateProposalRequest.setProposalWaitTime(DEPLOYWAITTIME);
                 instantiateProposalRequest.setChaincodeID(chaincodeID);
                 instantiateProposalRequest.setChaincodeLanguage(CHAIN_CODE_LANG);
-                //调用链码的实例化方法
+                //调用链码的实例化方法,初始化
                 instantiateProposalRequest.setFcn("init");
-                //初始化的时候这里测试了一下链码初始化的时候保存中文后面是否可以取到
-//         instantiateProposalRequest.setArgs(new String[] {"a", "我是谁", "b", "" + (200 + delta)});
+                //初始化的传入参数,初始化链码的时候传入节点的公钥证书
                 instantiateProposalRequest.setArgs(new String[]{"a", "500", "b", "" + (200 + delta)});
                 Map<String, byte[]> tm = new HashMap<>();
                 tm.put("HyperLedgerFabric", "InstantiateProposalRequest:JavaSDK".getBytes(UTF_8));
@@ -355,10 +343,20 @@ public class CheckRunner implements ApplicationRunner {
             e.printStackTrace();
         }
     }
-
+    /**
+     * 检查链码是否实例化的方法
+     * @param channel
+     * @param peer
+     * @param ccName
+     * @param ccPath
+     * @param ccVersion
+     */
     private static boolean checkInstantiatedChaincode(Channel channel, Peer peer, String ccName, String ccPath, String ccVersion) throws InvalidArgumentException, ProposalException {
         //查询相应的peer节点上所有实例化的链码的列表集合
         List<Query.ChaincodeInfo> ccinfoList = channel.queryInstantiatedChaincodes(peer);
+        return checkChaincode(ccName, ccPath, ccVersion, ccinfoList);
+    }
+    private static boolean checkChaincode(String ccName, String ccPath, String ccVersion, List<Query.ChaincodeInfo> ccinfoList) {
         boolean found = false;
         for (Query.ChaincodeInfo ccifo : ccinfoList) {
             if (ccPath != null) {
@@ -374,24 +372,10 @@ public class CheckRunner implements ApplicationRunner {
         }
         return found;
     }
-
     private static boolean checkInstalledChaincode(HFClient client, Peer peer, String ccName, String ccPath, String ccVersion)
             throws InvalidArgumentException, ProposalException {
         //查询相应的peer节点的链码列表
         List<Query.ChaincodeInfo> ccinfoList = client.queryInstalledChaincodes(peer);
-        boolean found = false;
-        for (Query.ChaincodeInfo ccifo : ccinfoList) {
-            if (ccPath != null) {
-                found = ccName.equals(ccifo.getName()) && ccPath.equals(ccifo.getPath()) && ccVersion.equals(ccifo.getVersion());
-                if (found) {
-                    break;
-                }
-            }
-            found = ccName.equals(ccifo.getName()) && ccVersion.equals(ccifo.getVersion());
-            if (found) {
-                break;
-            }
-        }
-        return found;
+        return checkChaincode(ccName, ccPath, ccVersion, ccinfoList);
     }
 }
